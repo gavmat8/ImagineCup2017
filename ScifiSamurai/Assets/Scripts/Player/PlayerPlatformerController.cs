@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class PlayerPlatformerController : PhysicsObject
 {
+    public float baseZ = -1f;
+
     public float standingHeight = 2f;
     public float standingWidth = 1f;
     public float slidingHeight = 1f;
@@ -34,6 +36,8 @@ public class PlayerPlatformerController : PhysicsObject
     public float wallJumpTime = 0.1f;
     public float wallJumpVelocityXPercent = 0.5f;
 
+    public float noobJumpTime = 0.1f;
+
     private bool jumpButtonHeld = false;
 
     private float horzInput = 0f;
@@ -44,7 +48,12 @@ public class PlayerPlatformerController : PhysicsObject
     private bool wallOnRight = false;
     private bool jumpedWall = false;
     private float jumpedWallTime = 0.1f;
-    
+
+    private bool noobJump = false;
+    private bool noobJumpResetCalled = false;
+
+    private bool facingLeft = false;
+
 
     private float speed = 0f;
 
@@ -52,12 +61,14 @@ public class PlayerPlatformerController : PhysicsObject
 
     private SpriteRenderer spriteRenderer;
     private Animator animator;
+    private Transform colRun;
 
     // Use this for initialization
     void Awake()
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        animator = GetComponent<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        animator = GetComponentInChildren<Animator>();
+        colRun = transform.FindChild("colRun");
     }
 
     void Update()
@@ -80,17 +91,23 @@ public class PlayerPlatformerController : PhysicsObject
 
         move.x = speed;
 
-        bool flipSprite = (spriteRenderer.flipX ? (move.x > 0.001f) : (move.x < -0.001f));
+        bool flipSprite = (facingLeft ? (move.x > 0.001f) : (move.x < -0.001f));
         if (flipSprite)
         {
-            spriteRenderer.flipX = !spriteRenderer.flipX;
+            transform.localScale = new Vector3(-1 * transform.localScale.x, transform.localScale.y, transform.localScale.z);
+            facingLeft = !facingLeft;
         }
 
         //animator.SetBool("grounded", grounded);
-        //animator.SetFloat("velocityX", Mathf.Abs(velocity.x) / maxSpeed);
+        animator.SetFloat("speed", Mathf.Abs(horzInput));
 
         targetVelocity = move;
     }
+
+    /*private void flipCollider()
+    {
+        colRun.localScale = new Vector3 (-1 * colRun.localScale.x, colRun.localScale.y, colRun.localScale.z);
+    }*/
 
     private void Jump()
     {
@@ -111,8 +128,9 @@ public class PlayerPlatformerController : PhysicsObject
             Invoke("ResetJumpedWall", jumpedWallTime);
             Invoke("ResetJumpHold", holdTime);
         }
-        else if (Input.GetButtonDown("Jump") && grounded && !sliding)
+        else if (Input.GetButtonDown("Jump") && (grounded || noobJump) && !sliding)
         {
+            noobJump = false;
             velocity.y = jumpTakeOffSpeed;
             jumpButtonHeld = true;
             Invoke("ResetJumpHold", holdTime);
@@ -152,6 +170,12 @@ public class PlayerPlatformerController : PhysicsObject
             gravityModifier = 1f;
             onWall = false;
             jumpedWall = false;
+            noobJump = true;
+        }
+        else if (!grounded && noobJump && !noobJumpResetCalled)
+        {
+            Invoke("ResetNoobJump", noobJumpTime);
+            noobJumpResetCalled = true;
         }
     }
 
@@ -167,7 +191,7 @@ public class PlayerPlatformerController : PhysicsObject
         if (onWall)
         {
             horzInput = 0;
-            if((Input.GetAxis("Horizontal") < 0 && rb2d.Cast(Vector2.right, contactFilter, results, wallJumpCheckDistance + shellRadius) > 0) ||
+            if ((Input.GetAxis("Horizontal") < 0 && rb2d.Cast(Vector2.right, contactFilter, results, wallJumpCheckDistance + shellRadius) > 0) ||
                (Input.GetAxis("Horizontal") > 0 && rb2d.Cast(Vector2.left, contactFilter, results, wallJumpCheckDistance + shellRadius) > 0))
             {
                 Invoke("SetOnWall", wallStickTime);
@@ -186,14 +210,14 @@ public class PlayerPlatformerController : PhysicsObject
         }
         else if (sliding)
         {
-            if(Mathf.Abs(horzInput) > crawlingSpeed / maxSpeed)
+            if (Mathf.Abs(horzInput) > crawlingSpeed / maxSpeed)
             {
                 if (grounded)
                 {
                     horzInput -= slideDecay * Mathf.Sign(horzInput);
                 }
             }
-            else if(Input.GetKey("a") && Input.GetKey("d"))
+            else if (Input.GetKey("a") && Input.GetKey("d"))
             {
                 horzInput -= gravity * Mathf.Sign(horzInput);
             }
@@ -324,7 +348,7 @@ public class PlayerPlatformerController : PhysicsObject
     {
         float deltaY = (transform.localScale.y - y) / 2;
         transform.localScale = new Vector3(x, y, 0);
-        transform.position = new Vector3(transform.position.x, transform.position.y - deltaY, 0);
+        transform.position = new Vector3(transform.position.x, transform.position.y - deltaY, baseZ);
     }
 
     private void CheckWallJump()
@@ -343,7 +367,7 @@ public class PlayerPlatformerController : PhysicsObject
                 wallOnRight = false;
             }
         }
-        else if (rb2d.Cast(Vector2.right, contactFilter, results, wallJumpCheckDistance + shellRadius) == 0 && 
+        else if (rb2d.Cast(Vector2.right, contactFilter, results, wallJumpCheckDistance + shellRadius) == 0 &&
                  rb2d.Cast(Vector2.left, contactFilter, results, wallJumpCheckDistance + shellRadius) == 0)
         {
             SetOnWall();
@@ -358,5 +382,11 @@ public class PlayerPlatformerController : PhysicsObject
     private void ResetJumpedWall()
     {
         jumpedWall = false;
+    }
+
+    private void ResetNoobJump()
+    {
+        noobJump = false;
+        noobJumpResetCalled = false;
     }
 }

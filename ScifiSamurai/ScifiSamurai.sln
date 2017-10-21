@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2017
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScifiSamurai", "ScifiSamurai.csproj", "{91BBD1B4-2C73-8A69-2F6F-46B040027025}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScifiSamurai.Editor", "ScifiSamurai.Editor.csproj", "{694AFE08-7015-531C-029A-DC5064056002}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{91BBD1B4-2C73-8A69-2F6F-46B040027025}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91BBD1B4-2C73-8A69-2F6F-46B040027025}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91BBD1B4-2C73-8A69-2F6F-46B040027025}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91BBD1B4-2C73-8A69-2F6F-46B040027025}.Release|Any CPU.Build.0 = Release|Any CPU
+		{694AFE08-7015-531C-029A-DC5064056002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{694AFE08-7015-531C-029A-DC5064056002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{694AFE08-7015-531C-029A-DC5064056002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{694AFE08-7015-531C-029A-DC5064056002}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
