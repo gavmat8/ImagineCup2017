@@ -86,7 +86,8 @@ public class PlayerPlatformerController : PhysicsObject
 
     private void Slash()
     {
-        if (Input.GetKeyDown("j") && (animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Run") || animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Idle")))
+        if (Input.GetKeyDown("j") && (animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Run") || animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Idle") ||
+            animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Aerial") || animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Jump")))
         {
             animator.SetTrigger("slashTrigger");
         }
@@ -121,7 +122,8 @@ public class PlayerPlatformerController : PhysicsObject
             facingLeft = !facingLeft;
         }
 
-        //animator.SetBool("grounded", grounded);
+        animator.SetBool("grounded", grounded);
+		animator.SetFloat ("ySpeed", velocity.y);
         animator.SetFloat("speed", Mathf.Abs(horzInput));
         animator.SetFloat("realSpeed", Mathf.Abs(horzInput * maxSpeed));
         animator.SetBool("slidingBool", sliding);
@@ -153,6 +155,7 @@ public class PlayerPlatformerController : PhysicsObject
             jumpedWall = true;
             Invoke("ResetJumpedWall", jumpedWallTime);
             Invoke("ResetJumpHold", holdTime);
+            animator.SetTrigger("wallJumpTrigger");
         }
         else if (Input.GetButtonDown("Jump") && (grounded || noobJump) && !sliding && !disableMove)
         {
@@ -333,7 +336,8 @@ public class PlayerPlatformerController : PhysicsObject
 
     private void Slide()
     {
-        if (Input.GetButtonDown("Down") && horzInput != 0 && animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Run"))
+        if (Input.GetButtonDown("Down") && horzInput != 0 && (animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Run") || animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Aerial") ||
+            animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Jump")))
         {
             SwitchHitbox(false);
             if (rb2d.Cast(Vector2.left, contactFilter, results, shellRadius) == 0
