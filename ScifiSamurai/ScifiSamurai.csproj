@@ -101,6 +101,7 @@
     <Compile Include="Assets\Tiled2Unity\Scripts\Runtime\TmxObject.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\Tiled2Unity\Imported\Map0.tiled2unity.xml" />
     <None Include="Assets\Tiled2Unity\Imported\Map1.tiled2unity.xml" />
     <None Include="Assets\Tiled2Unity\Imported\Map2.tiled2unity.xml" />
     <None Include="Assets\Tiled2Unity\Imported\_ReadMe.txt" />
