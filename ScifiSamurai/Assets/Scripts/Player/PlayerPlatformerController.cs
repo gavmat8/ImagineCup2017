@@ -86,7 +86,7 @@ public class PlayerPlatformerController : PhysicsObject
 
     private void Slash()
     {
-        if (Input.GetKeyDown("j") && animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Run"))
+        if (Input.GetKeyDown("j") && (animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Run") || animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Idle")))
         {
             animator.SetTrigger("slashTrigger");
         }
@@ -160,6 +160,7 @@ public class PlayerPlatformerController : PhysicsObject
             velocity.y = jumpTakeOffSpeed;
             jumpButtonHeld = true;
             Invoke("ResetJumpHold", holdTime);
+            animator.SetTrigger("jumpTrigger");
         }
         else if (Input.GetButtonUp("Jump") || velocity.y < 0)
         {
