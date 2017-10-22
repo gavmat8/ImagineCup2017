@@ -54,31 +54,54 @@ public class PlayerPlatformerController : PhysicsObject
 
     private bool facingLeft = false;
 
+    private bool disableMove = false;
 
     private float speed = 0f;
 
     private RaycastHit2D[] results = new RaycastHit2D[16];
-
-    private SpriteRenderer spriteRenderer;
+    
     private Animator animator;
-    private Transform colRun;
+    private GameObject colRun;
+    private GameObject colSlide;
 
     // Use this for initialization
     void Awake()
     {
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         animator = GetComponentInChildren<Animator>();
-        colRun = transform.FindChild("colRun");
+        colRun = transform.Find("colRun").gameObject;
+        colSlide = transform.Find("colSlide").gameObject;
     }
 
     void Update()
     {
         targetVelocity = Vector2.zero;
+        disableMove = false;
         SetDown();
         Slide();
+        Slash();
         CheckWallJump();
         SetHorzInput();
         ComputeVelocity();
+    }
+
+    private void Slash()
+    {
+        if (Input.GetKeyDown("j") && animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Run"))
+        {
+            animator.SetTrigger("slashTrigger");
+        }
+        if (animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Slash"))
+        {
+            disableMove = true;
+            if (facingLeft)
+            {
+                horzInput = -1;
+            }
+            else
+            {
+                horzInput = 1;
+            }
+        }
     }
 
     protected override void ComputeVelocity()
@@ -100,6 +123,9 @@ public class PlayerPlatformerController : PhysicsObject
 
         //animator.SetBool("grounded", grounded);
         animator.SetFloat("speed", Mathf.Abs(horzInput));
+        animator.SetFloat("realSpeed", Mathf.Abs(horzInput * maxSpeed));
+        animator.SetBool("slidingBool", sliding);
+        animator.SetFloat("crawlPercent", Mathf.Abs((horzInput * maxSpeed) / crawlingSpeed));
 
         targetVelocity = move;
     }
@@ -111,7 +137,7 @@ public class PlayerPlatformerController : PhysicsObject
 
     private void Jump()
     {
-        if (Input.GetButtonDown("Jump") && onWall && !sliding)
+        if (Input.GetButtonDown("Jump") && onWall && !sliding && !disableMove)
         {
             velocity.y = jumpTakeOffSpeed;
             if (wallOnRight)
@@ -128,7 +154,7 @@ public class PlayerPlatformerController : PhysicsObject
             Invoke("ResetJumpedWall", jumpedWallTime);
             Invoke("ResetJumpHold", holdTime);
         }
-        else if (Input.GetButtonDown("Jump") && (grounded || noobJump) && !sliding)
+        else if (Input.GetButtonDown("Jump") && (grounded || noobJump) && !sliding && !disableMove)
         {
             noobJump = false;
             velocity.y = jumpTakeOffSpeed;
@@ -154,7 +180,7 @@ public class PlayerPlatformerController : PhysicsObject
             gravityModifier = 1f;
             velocity.y = jumpTakeOffSpeed;
         }
-        else if (onWall && velocity.y < onWallFallSpeed)
+        else if (onWall && velocity.y < onWallFallSpeed && !disableMove && !sliding)
         {
             gravityModifier = 1f;
             velocity.y = onWallFallSpeed;
@@ -188,111 +214,114 @@ public class PlayerPlatformerController : PhysicsObject
     {
         float oldHorzInput = horzInput;
 
-        if (onWall)
+        if (!disableMove)
         {
-            horzInput = 0;
-            if ((Input.GetAxis("Horizontal") < 0 && rb2d.Cast(Vector2.right, contactFilter, results, wallJumpCheckDistance + shellRadius) > 0) ||
-               (Input.GetAxis("Horizontal") > 0 && rb2d.Cast(Vector2.left, contactFilter, results, wallJumpCheckDistance + shellRadius) > 0))
+            if (onWall)
             {
-                Invoke("SetOnWall", wallStickTime);
+                horzInput = 0;
+                if ((Input.GetAxis("Horizontal") < 0 && rb2d.Cast(Vector2.right, contactFilter, results, wallJumpCheckDistance + shellRadius) > 0) ||
+                   (Input.GetAxis("Horizontal") > 0 && rb2d.Cast(Vector2.left, contactFilter, results, wallJumpCheckDistance + shellRadius) > 0))
+                {
+                    Invoke("SetOnWall", wallStickTime);
+                }
             }
-        }
-        else if (jumpedWall)
-        {
-            if (wallOnRight)
+            else if (jumpedWall)
             {
-                horzInput = -maxSpeed * wallJumpVelocityXPercent;
+                if (wallOnRight)
+                {
+                    horzInput = -maxSpeed * wallJumpVelocityXPercent;
+                }
+                else
+                {
+                    horzInput = maxSpeed * wallJumpVelocityXPercent;
+                }
+            }
+            else if (sliding)
+            {
+                if (Mathf.Abs(horzInput) > crawlingSpeed / maxSpeed)
+                {
+                    if (grounded)
+                    {
+                        horzInput -= slideDecay * Mathf.Sign(horzInput);
+                    }
+                }
+                else if (Input.GetKey("a") && Input.GetKey("d"))
+                {
+                    horzInput -= gravity * Mathf.Sign(horzInput);
+                }
+                else if (Input.GetAxis("Horizontal") > 0)
+                {
+                    if (horzInput < 0)
+                    {
+                        horzInput = 0;
+                    }
+                    horzInput = crawlingSpeed / maxSpeed;
+                }
+                else if (Input.GetAxis("Horizontal") < 0)
+                {
+                    if (horzInput > 0)
+                    {
+                        horzInput = 0;
+                    }
+                    horzInput = -crawlingSpeed / maxSpeed;
+                }
+                else if (horzInput != 0)
+                {
+                    horzInput -= gravity * Mathf.Sign(horzInput);
+                }
             }
             else
             {
-                horzInput = maxSpeed * wallJumpVelocityXPercent;
-            }
-        }
-        else if (sliding)
-        {
-            if (Mathf.Abs(horzInput) > crawlingSpeed / maxSpeed)
-            {
-                if (grounded)
+                if (Input.GetKey("a") && Input.GetKey("d"))
                 {
-                    horzInput -= slideDecay * Mathf.Sign(horzInput);
+                    horzInput -= gravity * Mathf.Sign(horzInput);
+                }
+                else if (Input.GetAxis("Horizontal") > 0)
+                {
+                    if (horzInput < 0)
+                    {
+                        horzInput = 0;
+                    }
+                    else if (horzInput < minSpeed / maxSpeed)
+                    {
+                        horzInput = minSpeed / maxSpeed;
+                    }
+                    horzInput += sensitivity;
+                }
+                else if (Input.GetAxis("Horizontal") < 0)
+                {
+                    if (horzInput > 0)
+                    {
+                        horzInput = 0;
+                    }
+                    else if (horzInput > -minSpeed / maxSpeed)
+                    {
+                        horzInput = -minSpeed / maxSpeed;
+                    }
+                    horzInput -= sensitivity;
+                }
+                else if (horzInput != 0)
+                {
+                    horzInput -= gravity * Mathf.Sign(horzInput);
                 }
             }
-            else if (Input.GetKey("a") && Input.GetKey("d"))
-            {
-                horzInput -= gravity * Mathf.Sign(horzInput);
-            }
-            else if (Input.GetAxis("Horizontal") > 0)
-            {
-                if (horzInput < 0)
-                {
-                    horzInput = 0;
-                }
-                horzInput = crawlingSpeed / maxSpeed;
-            }
-            else if (Input.GetAxis("Horizontal") < 0)
-            {
-                if (horzInput > 0)
-                {
-                    horzInput = 0;
-                }
-                horzInput = -crawlingSpeed / maxSpeed;
-            }
-            else if (horzInput != 0)
-            {
-                horzInput -= gravity * Mathf.Sign(horzInput);
-            }
-        }
-        else
-        {
-            if (Input.GetKey("a") && Input.GetKey("d"))
-            {
-                horzInput -= gravity * Mathf.Sign(horzInput);
-            }
-            else if (Input.GetAxis("Horizontal") > 0)
-            {
-                if (horzInput < 0)
-                {
-                    horzInput = 0;
-                }
-                else if (horzInput < minSpeed / maxSpeed)
-                {
-                    horzInput = minSpeed / maxSpeed;
-                }
-                horzInput += sensitivity;
-            }
-            else if (Input.GetAxis("Horizontal") < 0)
-            {
-                if (horzInput > 0)
-                {
-                    horzInput = 0;
-                }
-                else if (horzInput > -minSpeed / maxSpeed)
-                {
-                    horzInput = -minSpeed / maxSpeed;
-                }
-                horzInput -= sensitivity;
-            }
-            else if (horzInput != 0)
-            {
-                horzInput -= gravity * Mathf.Sign(horzInput);
-            }
-        }
 
-        if (((Input.GetAxis("Horizontal") > 0 && rb2d.Cast(Vector2.right, contactFilter, results, wallCheckDistance + shellRadius) > 0) ||
-            (Input.GetAxis("Horizontal") < 0 && rb2d.Cast(Vector2.left, contactFilter, results, wallCheckDistance + shellRadius) > 0)) &&
-            velocity.x < 0.001)
-        {
-            horzInput = 0;
-        }
+            if (((Input.GetAxis("Horizontal") > 0 && rb2d.Cast(Vector2.right, contactFilter, results, wallCheckDistance + shellRadius) > 0) ||
+                (Input.GetAxis("Horizontal") < 0 && rb2d.Cast(Vector2.left, contactFilter, results, wallCheckDistance + shellRadius) > 0)) &&
+                velocity.x < 0.001)
+            {
+                horzInput = 0;
+            }
 
-        if ((Mathf.Sign(horzInput) != Mathf.Sign(oldHorzInput) || Mathf.Abs(horzInput) < deadzone) && (Input.GetAxis("Horizontal") == 0 || (Input.GetKey("a") && Input.GetKey("d"))))
-        {
-            horzInput = 0f;
-        }
+            if ((Mathf.Sign(horzInput) != Mathf.Sign(oldHorzInput) || Mathf.Abs(horzInput) < deadzone) && (Input.GetAxis("Horizontal") == 0 || (Input.GetKey("a") && Input.GetKey("d"))))
+            {
+                horzInput = 0f;
+            }
 
-        if (Mathf.Abs(horzInput) > 1)
-        {
-            horzInput = Mathf.Sign(horzInput) * 1;
+            if (Mathf.Abs(horzInput) > 1)
+            {
+                horzInput = Mathf.Sign(horzInput) * 1;
+            }
         }
     }
 
@@ -303,52 +332,52 @@ public class PlayerPlatformerController : PhysicsObject
 
     private void Slide()
     {
-        if (Input.GetButtonDown("Down") && horzInput != 0)
+        if (Input.GetButtonDown("Down") && horzInput != 0 && animator.GetCurrentAnimatorStateInfo(0).IsName("Base.Run"))
         {
-            SetScale(slidingWidth, slidingHeight);
-            if (rb2d.Cast(Vector2.left, contactFilter, results, (standingWidth / 2) - (slidingWidth / 2) + shellRadius) == 0
-            && rb2d.Cast(Vector2.right, contactFilter, results, (standingWidth / 2) - (slidingWidth / 2) + shellRadius) == 0)
+            SwitchHitbox(false);
+            if (rb2d.Cast(Vector2.left, contactFilter, results, shellRadius) == 0
+                && rb2d.Cast(Vector2.right, contactFilter, results, shellRadius) == 0)
             {
                 sliding = true;
+                animator.SetTrigger("slideTrigger");
             }
             else
             {
-                SetScale(standingWidth, standingHeight);
+                SwitchHitbox(true);
             }
         }
 
         if (Input.GetButtonUp("Down") && sliding)
         {
-            SetScale(standingWidth, standingHeight);
-            if (rb2d.Cast(Vector2.up, contactFilter, results, standingHeight - slidingHeight + shellRadius) == 0)
+            SwitchHitbox(true);
+            if (rb2d.Cast(Vector2.up, contactFilter, results, shellRadius) == 0)
             {
                 sliding = false;
             }
             else
             {
-                SetScale(slidingWidth, slidingHeight);
+                SwitchHitbox(false);
             }
         }
 
         if (sliding && !down)
         {
-            SetScale(standingWidth, standingHeight);
-            if (rb2d.Cast(Vector2.up, contactFilter, results, standingHeight - slidingHeight + shellRadius) == 0)
+            SwitchHitbox(true);
+            if (rb2d.Cast(Vector2.up, contactFilter, results, shellRadius) == 0)
             {
                 sliding = false;
             }
             else
             {
-                SetScale(slidingWidth, slidingHeight);
+                SwitchHitbox(false);
             }
         }
     }
 
-    private void SetScale(float x, float y)
+    private void SwitchHitbox(bool toStanding)
     {
-        float deltaY = (transform.localScale.y - y) / 2;
-        transform.localScale = new Vector3(x, y, 0);
-        transform.position = new Vector3(transform.position.x, transform.position.y - deltaY, baseZ);
+        colRun.SetActive(toStanding);
+        colSlide.SetActive(!toStanding);
     }
 
     private void CheckWallJump()
